@@ -37,6 +37,7 @@ public class CertificateServiceTest {
 		mockRec.setName("www.fan-kub-server.com");
 		//created 10 days ago with an expiration age of 90 days
 		mockRec.setCreationDate(LocalDate.now().minusDays(10));
+		mockRec.setLastModifiedDate(mockRec.getCreationDate());
 		mockRec.setExpirationDate(LocalDate.now().plusDays(80));
 		
 		when(mockCertDao.findByName(anyString())).thenReturn(mockRec);
@@ -63,6 +64,7 @@ public class CertificateServiceTest {
 		mockRec.setName("www.fan-kub-server.com");
 		//created 100 days ago with an expiration age of 90 days : cert expired
 		mockRec.setCreationDate(LocalDate.now().minusDays(100));
+		mockRec.setLastModifiedDate(mockRec.getCreationDate());
 		mockRec.setExpirationDate(LocalDate.now().minusDays(10));
 		
 		when(mockCertDao.findByName(anyString())).thenReturn(null);
@@ -75,6 +77,33 @@ public class CertificateServiceTest {
 		/*
 		 * 1. Cache is invalid as gt 30 days
 		 * 2. Cert is expired
+		 * 3. shud return from external service
+		 */
+		assertThat(retCertRec.getCertificate()).isNotEqualTo("random-certificate");
+		//fail("Not yet implemented");
+	}
+	
+	@Test
+	public void test_getCertificate_InCacheButExpired() {
+		//Arrange
+		mockRec.setCertificate("random-certificate");
+		mockRec.setName("www.fan-kub-server.com");
+		//re-created 10 days ago with expiration date of 5 days ago: 
+		// cache valid but cert expired
+		mockRec.setCreationDate(LocalDate.now().minusDays(85));
+		mockRec.setLastModifiedDate(LocalDate.now().minusDays(10));
+		mockRec.setExpirationDate(LocalDate.now().minusDays(5));
+		
+		when(mockCertDao.findByName(anyString())).thenReturn(null);
+		certService.setCertDao(mockCertDao);
+		
+		//Act
+		CertificateRecord retCertRec = certService.getCertificate("www.fan-kub-server.com");
+		
+		//Assert
+		/*
+		 * 1. Cache is valid as gt 30 days from lastModified
+		 * 2. Cert was expired 5 days ago
 		 * 3. shud return from external service
 		 */
 		assertThat(retCertRec.getCertificate()).isNotEqualTo("random-certificate");

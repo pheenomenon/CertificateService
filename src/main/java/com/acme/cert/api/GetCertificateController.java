@@ -19,7 +19,6 @@ public class GetCertificateController {
 	public @ResponseBody CertificateRecord requestCertificate(@PathVariable String domain) {
 		
 		//get certificate for domain
-		CertificateRecord cert = null;
 		CertificateRecord certificate = serv.getCertificate(domain);
 		//return "SSL certificate :" + certificate.getCertificate();
 		return certificate;

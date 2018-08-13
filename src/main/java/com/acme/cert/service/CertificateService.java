@@ -12,7 +12,7 @@ import com.acme.cert.dao.CertificateRecordDao;
 @Service
 public class CertificateService {
 	
-	//Caches certificates for a configurable amount of time
+	//Caches certificates for a configurable amount of time - 30 days
 	public static final int cacheDuration = 30;
 	
 	@Autowired 
@@ -27,39 +27,34 @@ public class CertificateService {
 		CertificateRecord entry = null;
 		//if cert for domain exists in DB/cache
 		entry  = getCertFromCache(domainName);
+
 		if(entry != null) {
-			if(!isCacheValidForDomain(entry)){
-				if(isCertExpired(entry)) {
-					//in cache but expired
-					CertificateRecord renewedCert = renewCertificate(entry);
-					storeCertInCache(renewedCert);
-					return renewedCert;	
-				} else {
-					//Assumption ?: request server for previously issued cert
-					return null;
-				}
-			} else {
-				//in cache & not expired
-				return entry;
-				
+			if(isCacheExpired(entry)) {
+				entry = requestCertificateAgain(domainName);
+				storeCertInCache(entry);
+			} 
+			if(isCertExpired(entry)) {
+				//in cache but expired
+				entry = renewCertificate(entry);
+				storeCertInCache(entry);
+	
 			}
 		} else {
 			//not in cache, request for a new one
-			CertificateRecord newCert = createNewCertificate(domainName);
-			storeCertInCache(newCert);
-			return newCert;
+			entry = createNewCertificate(domainName);
+			storeCertInCache(entry);
 		}
+		
+		return entry;		
+
 	}
 	
-	private boolean isCacheValidForDomain(CertificateRecord rec) {
-		boolean isValid =false;
-		//domain was never renewed i.e creationDate = cacheEntryDate
-		if(rec.getLastModifiedDate() == null) {
-			isValid = LocalDate.now().isBefore(rec.getCreationDate().plusDays(cacheDuration));
-		} else { //domain was renewed atleast once i.e lastModifiedDate = cacheRefreshDate
-			isValid = LocalDate.now().isBefore(rec.getLastModifiedDate().plusDays(cacheDuration));
-		}
-		return isValid;
+	private boolean isCacheExpired(CertificateRecord rec) {
+		boolean isExpired =true;
+		//cert was issued or renewed before last 30 days
+		isExpired = LocalDate.now().isAfter(rec.getLastModifiedDate().plusDays(cacheDuration));
+		
+		return isExpired;
 	}
 	
 	/**
@@ -140,6 +135,20 @@ public class CertificateService {
 		}
 		return newCert;
 	}
+	
+	/**
+	 * Assumption: this method will call service to re-request instead of create
+	 * requests the cert again 
+	 * @param expRec
+	 * @return
+	 */
+	private CertificateRecord requestCertificateAgain(String domain) {
+		CertificateRecord renewedCert = null;
+		renewedCert = createNewCertificate(domain);
+		return renewedCert;
+		
+	}
+
 	
 	/**
 	 * create an application specific CertificateRecord based on result from external call

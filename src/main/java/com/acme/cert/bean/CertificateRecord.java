@@ -11,8 +11,8 @@ import javax.persistence.PreUpdate;
 @Entity
 public class CertificateRecord {
 	
-	@Id @GeneratedValue
-	Long id;
+
+	@Id
 	String name;
 	String certificate;
 	LocalDate creationDate;
@@ -45,15 +45,6 @@ public class CertificateRecord {
 
 	public void setLastModifiedDate(LocalDate lastModifiedDate) {
 		this.lastModifiedDate = lastModifiedDate;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-
-	public void setId(Long id) {
-		this.id = id;
 	}
 
 
